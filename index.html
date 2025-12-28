@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cơ chế Hoạt động CoCo - Trình chiếu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #003B5C;
+            --accent: #D14030;
+            --bg-light: #F0F4F8;
+            --text: #334155;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            background-color: #1e293b;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer; /* Click anywhere to advance */
+        }
+
+        .slide-container {
+            background-color: #fff;
+            width: 1280px;
+            height: 720px;
+            padding: 50px 60px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-title {
+            font-family: 'Merriweather', serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--primary);
+            border-bottom: 4px solid var(--accent);
+            padding-bottom: 15px;
+            margin: 0 0 40px 0;
+        }
+
+        .mechanism-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 40px;
+            flex-grow: 1;
+            align-items: center;
+        }
+
+        /* Hình ảnh mạng bên trái */
+        .visual-area {
+            background: var(--bg-light);
+            border-radius: 16px;
+            height: 450px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .network-node {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.5s ease;
+        }
+
+        .coordinator-node {
+            width: 100px;
+            height: 100px;
+            background: var(--accent);
+            z-index: 5;
+            font-size: 18px;
+        }
+
+        /* Danh sách bước bên phải */
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .step-card {
+            background: white;
+            border-left: 6px solid #e2e8f0;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            opacity: 0.3; /* Mờ khi chưa kích hoạt */
+            transform: translateX(-20px);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Khi bước được kích hoạt */
+        .step-card.active {
+            opacity: 1;
+            transform: translateX(0);
+            border-left-color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-card.active.highlight {
+            border-left-color: var(--accent);
+            background: #fffafa;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 5px;
+        }
+
+        .step-number {
+            background: #cbd5e1;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .active .step-number { background: var(--primary); }
+        .active.highlight .step-number { background: var(--accent); }
+
+        .step-card h3 {
+            margin: 0;
+            font-size: 22px;
+            color: #64748b;
+            font-family: 'Merriweather', serif;
+            transition: color 0.3s;
+        }
+
+        .active h3 { color: var(--primary); }
+        .active.highlight h3 { color: var(--accent); }
+
+        .step-card p {
+            margin: 0;
+            font-size: 16px;
+            color: #94a3b8;
+            line-height: 1.4;
+            transition: color 0.3s;
+        }
+
+        .active p { color: var(--text); }
+
+        .instruction {
+            position: absolute;
+            bottom: 20px;
+            right: 40px;
+            font-size: 14px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* Animation cho các đường nối hoặc sóng phát ra khi click */
+        .pulse {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .active-pulse {
+            animation: pulseEffect 1.5s infinite;
+        }
+
+        @keyframes pulseEffect {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body onclick="nextStep()">
+
+<div class="slide-container">
+    <h2 class="slide-title">Cơ chế Tối ưu hóa Thích ứng của CoCo</h2>
+    
+    <div class="mechanism-grid">
+        <div class="visual-area">
+            <div id="pulse-bg" class="pulse"></div>
+            <div class="network-node coordinator-node">Bộ điều phối</div>
+            
+            <div id="node1" class="network-node" style="top: 60px; left: 80px;">Nút 1</div>
+            <div id="node2" class="network-node" style="top: 60px; right: 80px;">Nút 2</div>
+            <div id="node3" class="network-node" style="bottom: 60px; left: 80px;">Nút 3</div>
+            <div id="node4" class="network-node" style="bottom: 60px; right: 80px;">Nút 4</div>
+        </div>
+
+        <div class="steps-container">
+            <div class="step-card" id="card-1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <h3>Báo cáo Trạng thái</h3>
+                </div>
+                <p>Nút gửi dữ liệu <strong>băng thông, độ trễ và khoảng cách đồng thuận</strong> lên Bộ điều phối.</p>
+            </div>
+
+            <div class="step-card highlight" id="card-2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <h3>Tối ưu hóa Toàn cục</h3>
+                </div>
+                <p>Bộ điều phối tính toán <strong>Cấu trúc mạng (Topology)</strong> và <strong>Tỷ lệ nén</strong> tối ưu nhất.</p>
+            </div>
+
+            <div class="step-card" id="card-3">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <h3>Cập nhật Cấu hình</h3>
+                </div>
+                <p>Phân phối cấu hình mới xuống từng nút để thực thi ngay trong vòng huấn luyện.</p>
+            </div>
+
+            <div class="step-card" id="card-4">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <h3>Huấn luyện & Trao đổi</h3>
+                </div>
+                <p>Nút nén mô hình và trao đổi dữ liệu trực tiếp qua mạng <strong>ngang hàng (P2P)</strong>.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="instruction">Click chuột hoặc nhấn phím bất kỳ để chuyển bước tiếp theo <i class="fa-solid fa-arrow-pointer"></i></div>
+</div>
+
+<script>
+    let currentStep = 0;
+    const totalSteps = 4;
+
+    function nextStep() {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            const card = document.getElementById(`card-${currentStep}`);
+            card.classList.add('active');
+            
+            // Hiệu ứng hình ảnh tương ứng từng bước
+            const pulse = document.getElementById('pulse-bg');
+            if (currentStep === 1) {
+                // Các nút sáng lên
+                document.querySelectorAll('.network-node:not(.coordinator-node)').forEach(n => n.style.background = '#3b82f6');
+            } else if (currentStep === 2) {
+                pulse.classList.add('active-pulse');
+            } else if (currentStep === 3) {
+                pulse.style.borderColor = '#22c55e';
+            } else if (currentStep === 4) {
+                // Mô phỏng kết nối P2P
+                document.querySelectorAll('.network-node').forEach(n => n.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)');
+            }
+        } else {
+            // Reset nếu click sau khi hết bước
+            currentStep = 0;
+            document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('pulse-bg').classList.remove('active-pulse');
+            document.querySelectorAll('.network-node:not(.coordinator-node)').forEach(n => {
+                n.style.background = '';
+                n.style.boxShadow = '';
+            });
+        }
+    }
+
+    // Hỗ trợ phím Space hoặc mũi tên để chuyển slide
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'Enter') {
+            nextStep();
+        }
+    });
+</script>
+
+</body>
+</html>
